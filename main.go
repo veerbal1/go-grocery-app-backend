@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"embed"
 	"fmt"
 	"log"
 	"net/http"
@@ -9,8 +10,13 @@ import (
 	"strings"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/jackc/pgx/v5/stdlib"
 	"github.com/joho/godotenv"
+	"github.com/pressly/goose/v3"
 )
+
+//go:embed migrations/*.sql
+var embedMigrations embed.FS
 
 func main() {
 	err := godotenv.Load()
@@ -39,6 +45,13 @@ func main() {
 	}
 	fmt.Println("Ping successful to DB")
 
+	fmt.Println("Running database migrations")
+	err = runMigrations(context.Background(), pg)
+	if err != nil {
+		log.Fatalf("Failed to run migrations: %v", err)
+	}
+	fmt.Println("Migrations completed")
+
 	fmt.Println("Building HTTP server...")
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
@@ -50,4 +63,21 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to listen on port :8080  - %v", err)
 	}
+}
+
+func runMigrations(ctx context.Context, pool *pgxpool.Pool) error {
+	db := stdlib.OpenDBFromPool(pool)
+	defer db.Close()
+
+	goose.SetBaseFS(embedMigrations)
+
+	if err := goose.SetDialect("postgres"); err != nil {
+		return fmt.Errorf("set goose dialect: %w", err)
+	}
+
+	if err := goose.UpContext(ctx, db, "migrations"); err != nil {
+		return fmt.Errorf("run goose migrations: %w", err)
+	}
+
+	return nil
 }
