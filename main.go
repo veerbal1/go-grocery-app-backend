@@ -60,21 +60,17 @@ func main() {
 
 	srv := &server{queries: queries}
 
-	addr := ":" + getPort()
+	var port string = os.Getenv("PORT")
+	if strings.TrimSpace(port) == "" {
+		port = "8080"
+	}
+
+	addr := ":" + port
 	fmt.Printf("Listening on %s\n", addr)
 	err = http.ListenAndServe(addr, srv.routes())
 	if err != nil {
 		log.Fatalf("Failed to listen on %s  - %v", addr, err)
 	}
-}
-
-func getPort() string {
-	port := strings.TrimSpace(os.Getenv("PORT"))
-	if port == "" {
-		return "8080"
-	}
-
-	return port
 }
 
 func runMigrations(ctx context.Context, pool *pgxpool.Pool) error {
