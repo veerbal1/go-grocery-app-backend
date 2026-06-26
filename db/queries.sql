@@ -1,5 +1,5 @@
 -- name: ListAllUsers :many
-SELECT * FROM users;
+SELECT id, name, email, created_at FROM users;
 
 -- name: CreateList :one
 INSERT INTO
@@ -14,4 +14,4 @@ INSERT INTO
         hashed_password,
         created_at
     )
-VALUES ($1, $2, $3, NOW()) RETURNING *;
+VALUES ($1, $2, $3, NOW()) RETURNING id, name, email, created_at;

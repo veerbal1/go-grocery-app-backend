@@ -60,18 +60,21 @@ func main() {
 
 	srv := &server{queries: queries}
 
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprint(w, "Hello, welcome to golang")
-	})
-
-	http.HandleFunc("/create-user", srv.createUser)
-	http.HandleFunc("/create-list", srv.createList)
-
-	fmt.Println("Listening on port :8080")
-	err = http.ListenAndServe(":8080", nil)
+	addr := ":" + getPort()
+	fmt.Printf("Listening on %s\n", addr)
+	err = http.ListenAndServe(addr, srv.routes())
 	if err != nil {
-		log.Fatalf("Failed to listen on port :8080  - %v", err)
+		log.Fatalf("Failed to listen on %s  - %v", addr, err)
 	}
+}
+
+func getPort() string {
+	port := strings.TrimSpace(os.Getenv("PORT"))
+	if port == "" {
+		return "8080"
+	}
+
+	return port
 }
 
 func runMigrations(ctx context.Context, pool *pgxpool.Pool) error {

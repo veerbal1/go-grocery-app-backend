@@ -43,7 +43,7 @@ INSERT INTO
         hashed_password,
         created_at
     )
-VALUES ($1, $2, $3, NOW()) RETURNING id, name, email, hashed_password, created_at
+VALUES ($1, $2, $3, NOW()) RETURNING id, name, email, created_at
 `
 
 type CreateUserParams struct {
@@ -52,37 +52,49 @@ type CreateUserParams struct {
 	HashedPassword string
 }
 
-func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, error) {
+type CreateUserRow struct {
+	ID        int32
+	Name      string
+	Email     string
+	CreatedAt pgtype.Timestamp
+}
+
+func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (CreateUserRow, error) {
 	row := q.db.QueryRow(ctx, createUser, arg.Name, arg.Email, arg.HashedPassword)
-	var i User
+	var i CreateUserRow
 	err := row.Scan(
 		&i.ID,
 		&i.Name,
 		&i.Email,
-		&i.HashedPassword,
 		&i.CreatedAt,
 	)
 	return i, err
 }
 
 const listAllUsers = `-- name: ListAllUsers :many
-SELECT id, name, email, hashed_password, created_at FROM users
+SELECT id, name, email, created_at FROM users
 `
 
-func (q *Queries) ListAllUsers(ctx context.Context) ([]User, error) {
+type ListAllUsersRow struct {
+	ID        int32
+	Name      string
+	Email     string
+	CreatedAt pgtype.Timestamp
+}
+
+func (q *Queries) ListAllUsers(ctx context.Context) ([]ListAllUsersRow, error) {
 	rows, err := q.db.Query(ctx, listAllUsers)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []User
+	var items []ListAllUsersRow
 	for rows.Next() {
-		var i User
+		var i ListAllUsersRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.Name,
 			&i.Email,
-			&i.HashedPassword,
 			&i.CreatedAt,
 		); err != nil {
 			return nil, err
